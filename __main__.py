@@ -24,6 +24,32 @@ class TicTac:
         pygame.draw.line(self.marks[0], (255, 255, 255), (4, 60), (60, 4), 3)
         pygame.draw.circle(self.marks[1], (255, 255, 255), (31, 31), 28, 3)
 
+    def comPlay(self):
+        pass
+
+    def checkFinished(self):
+        for i in range(3):
+            x = [self.grid[i][i] != 0, self.grid[i][i]]
+            y = [self.grid[i][i] != 0, self.grid[i][i]]
+            if not (x[0] or y[0]):
+                continue
+            for j in range(3):
+                if x[0]:
+                    x[0] = x[0] and self.grid[i][j] == x[1]
+                if y[0]:
+                    y[0] = y[0] and self.grid[j][i] == x[1]
+            if x[0] or y[0]:
+                #RETURN? Chama função pra colocar a mensagem?
+                print('Finished!')
+        x = [self.grid[0][0] != 0, self.grid[0][0]]
+        y = [self.grid[0][2] != 0, self.grid[0][2]]
+        for i in range(1, 3):
+            x[0] = x[0] and self.grid[i][i] == x[1]
+            y[0] = y[0] and self.grid[i][2-i] == y[1]
+        if x[0] or y[0]:
+            #RETURN? Chama função pra colocar a mensagem?
+            print('Finished!')
+
     def putOnScreen(self):
         self.display.blit(self.frame, (0, 0))
         for k1, v1 in enumerate(self.grid):
@@ -34,13 +60,15 @@ class TicTac:
         pygame.display.flip()
     
     def update(self):
-        if not self.playerTurn:
-            return
+        '''if not self.playerTurn:
+            return'''
         pressed = list(map(lambda x: (x-16)//64, pygame.mouse.get_pos()))
         if not self.grid[pressed[0]][pressed[1]]:
             self.grid[pressed[0]][pressed[1]] = 1 if self.playerTurn else 2
-            self.playerTurn = not self.playerTurn
+            self.playerTurn = False
         self.putOnScreen()
+        self.checkFinished()
+        self.comPlay()
 
 def main():
     pygame.init()  
