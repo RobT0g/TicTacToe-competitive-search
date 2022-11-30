@@ -25,89 +25,90 @@ class TicTac:
         pygame.draw.line(self.marks[0], (255, 255, 255), (4, 4), (60, 60), 3)
         pygame.draw.line(self.marks[0], (255, 255, 255), (4, 60), (60, 4), 3)
         pygame.draw.circle(self.marks[1], (255, 255, 255), (31, 31), 28, 3)
+    
+    def genEndGameMsg(self):
         self.finishedMsg = pygame.Surface((64*3, 64), pygame.SRCALPHA, 32)
-        txt = self.font.render(f'''You {'win' if self.won == 1 else 'lose'}.''', False, (255, 255, 255))
+        msg = 'You '
+        if self.won == 1:
+            msg += 'lose.'
+        elif self.won == -1:
+            msg += 'win.'
+        else:
+            msg += 'draw.'
+        txt = self.font.render(msg, False, (255, 255, 255))
         s = txt.get_size()
         pygame.draw.rect(self.finishedMsg, (50, 50, 50), pygame.Rect((32*3)-((s[0]+20)/2), 32-((s[1]+10)/2), s[0]+20, s[1]+10))
         self.finishedMsg.blit(txt, ((32*3)-(s[0]/2), 32-(s[1]/2)))
 
-    def comPlay(self):
-        freespaces = [[], [], [], []]
-        scores = []
-        gridcpy = [[j.copy() for j in self.grid] for i in range(5)]
-        for k1, v1 in enumerate(self.grid):
-            for k2, v2 in enumerate(v1):
-                if v2 == 0:
-                    for i in freespaces:
-                        i.append((k1, k2))
-                    scores.append(0)
-        # Lógica
-        for k, v in enumerate(freespaces[0]):
-            gridcpy[1][v[0]][v[1]] = 1
-            res = self.checkFinished(gridcpy[1])
-            if res[0]:
-                scores[k] = 1
-                continue
-            gridcpy[2][v[0]][v[1]] = 1
-            freespaces[1].pop(k)
-            for k1, v1 in enumerate(freespaces[1]):
-                gridcpy[2] = self.genGridCopy(gridcpy[1])
-                gridcpy[3] = self.genGridCopy(gridcpy[1])
-                freespaces[2] = freespaces[1].copy()
-                gridcpy[2][v1[0]][v1[1]] = -1
-                res = self.checkFinished(gridcpy[2])
-                if res[0]:
-                    scores[k] = -1
-                    break
-                elif scores[k] == 1:
-                    continue
-                gridcpy[3][v1[0]][v1[1]] = 1
-                freespaces[2].pop(k1)
-                for k2, v2 in enumerate(freespaces[2]):
-                    gridcpy[3] = self.genGridCopy(gridcpy[2])
-                    gridcpy[3][v2[0]][v2[1]] = 1
-                    res = self.checkFinished(gridcpy[3])
-                    if res[0]:
-                        scores[k] = 1
-                        break
-            gridcpy[1] = self.genGridCopy(gridcpy[0])
-            gridcpy[2] = self.genGridCopy(gridcpy[0])
-            gridcpy[3] = self.genGridCopy(gridcpy[0])
-            freespaces[1] = freespaces[0].copy()
-            freespaces[2] = freespaces[0].copy()
-        try:
-            return freespaces[0][scores.index(1)]
-        except: pass
-        try:
-            return freespaces[0][scores.index(0)]
-        except: pass
-        return freespaces[0][0]    
-
     def play(self):
-        pos = self.recoursiveTest(self.grid)
-        moves = [i[0] if i[2] == -1 else 0 for i in pos]
-        for i in range(3):
-            for k, v in enumerate(mov):
-                pass
+        [moves, grid, scores] = self.recoursiveTest(self.grid)
+        for k, v in enumerate(scores):
+            if v != 0:
+                if v == 1:
+                    return moves[k]
+                continue
+            grids = [grid[k]]
+            for i in range(2):
+                [res, grids] = self.testGrids(grids, i%2 == 1)
+                if res:
+                    scores[k] = grids
+                    break
+        try:
+            return moves[scores.index(1)]
+        except: pass
+        try:
+            if scores[moves.index((1, 1))] == 0:
+                return (1, 1)
+        except: pass
+        try:
+            for k, i in enumerate(moves):
+                if ((i[0]+i[1])%2 == 0) and scores[k] == 0:
+                    return i
+        except: pass
+        try:
+            return moves[scores.index(0)]
+        except: pass
+        return moves[0]
+
+    def testGrids(self, gridlist, comturn):
+        #print('-------- TESTING ---------')
+        #print(f'amnt: {len(gridlist)}, turn: {comturn}')
+        nextGrids = []
+        for i in gridlist:
+            [nmv, ngrid, nscore] = self.recoursiveTest(i, comturn)
+            #print(i)
+            #print(f'> {nscore}')
+            for k, v in enumerate(nscore):
+                if v == 0:
+                    nextGrids.append(ngrid[k])
+                    continue
+                #print(nmv[k], ngrid[k], v)
+                return [True, v]
+        return [False, nextGrids]
 
     def recoursiveTest(self, modgrid, comturn = True):
-        results = []
-        for k1, v1 in modgrid:
-            for k2, v2 in v1:
+        data = [[], [], []]
+        for k1, v1 in enumerate(modgrid):
+            for k2, v2 in enumerate(v1):
                 if v2 == 0:
-                    results.append([(k1, k2), self.genGridCopy(modgrid), 0])
-                    results[-1][1][k1][k2] = 1 if comturn else -1
-                    results[-1][2] = self.checkFinished(results[-1][1])[1]
-        return results
-        
-        
-
+                    data[0].append((k1, k2))
+                    data[1].append(self.genGridCopy(modgrid))
+                    data[1][-1][k1][k2] = 1 if comturn else -1
+                    data[2].append((x:=self.checkFinished(data[1][-1])[1]))
+        return data
+    
     def genGridCopy(self, grid):
         return [i.copy() for i in grid]
 
     def checkFinished(self, totest=False):
         grid = totest if totest else self.grid
-
+        nozero = True
+        for i in grid:
+            if 0 in i:
+                nozero = False
+                break
+        if nozero:
+            return [True, 2]
         for i in range(3):
             x = [grid[i][i] != 0, grid[i][i]]
             y = [grid[i][i] != 0, grid[i][i]]
@@ -126,7 +127,7 @@ class TicTac:
             x[0] = x[0] and grid[i][i] == x[1]
             y[0] = y[0] and grid[i][2-i] == y[1]
         if x[0] or y[0]:
-            return [True, x[1] if x[1] else y[1]]
+            return [True, x[1] if x[0] else y[1]]
         return [False, 0]
 
     def putOnScreen(self):
@@ -145,17 +146,19 @@ class TicTac:
             return
         pressed = list(map(lambda x: (x-16)//64, pygame.mouse.get_pos()))
         if not self.grid[pressed[0]][pressed[1]]:
-            self.grid[pressed[0]][pressed[1]] = -1 if self.playerTurn else 1
+            self.grid[pressed[0]][pressed[1]] = -1
             self.playerTurn = False
         self.putOnScreen()
         if (r:=self.checkFinished())[0]:
             self.won = r[1]
+            self.genEndGameMsg()
             self.putOnScreen()
         else:
-            m = self.comPlay()
+            m = self.play()
             self.grid[m[0]][m[1]] = 1
             if (r:=self.checkFinished())[0]:
                 self.won = r[1]
+                self.genEndGameMsg()
             else:
                 self.playerTurn = True
             self.putOnScreen()
